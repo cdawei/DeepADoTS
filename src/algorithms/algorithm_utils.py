@@ -4,8 +4,6 @@ import random
 
 import numpy as np
 import torch
-import tensorflow as tf
-from tensorflow.python.client import device_lib
 from torch.autograd import Variable
 
 
@@ -61,6 +59,7 @@ class PyTorchUtils(metaclass=abc.ABCMeta):
 
 class TensorflowUtils(metaclass=abc.ABCMeta):
     def __init__(self, seed, gpu):
+        import tensorflow as tf
         self.gpu = gpu
         self.seed = seed
         if self.seed is not None:
@@ -69,6 +68,8 @@ class TensorflowUtils(metaclass=abc.ABCMeta):
 
     @property
     def device(self):
+        import tensorflow as tf
+        from tensorflow.python.client import device_lib
         local_device_protos = device_lib.list_local_devices()
         gpus = [x.name for x in local_device_protos if x.device_type == 'GPU']
         return tf.device(gpus[self.gpu] if gpus and self.gpu is not None else '/cpu:0')
