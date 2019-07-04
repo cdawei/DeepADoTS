@@ -8,6 +8,7 @@ from scipy.stats import multivariate_normal
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import SubsetRandomSampler
 from tqdm import trange
+from typing import List
 
 from .algorithm_utils import Algorithm, PyTorchUtils
 
@@ -29,11 +30,15 @@ class AutoEncoder(Algorithm, PyTorchUtils):
         self.aed = None
         self.mean, self.cov = None, None
 
-    def fit(self, X: pd.DataFrame):
-        X.interpolate(inplace=True)
-        X.bfill(inplace=True)
-        data = X.values
-        sequences = [data[i:i + self.sequence_length] for i in range(data.shape[0] - self.sequence_length + 1)]
+    def fit(self, X_list: List[pd.DataFrame]):
+        # deal with multiple time series
+        sequences = []
+        for X in X_list:
+            X.interpolate(inplace=True)
+            X.bfill(inplace=True)
+            data = X.values
+            sequences += [data[i:i + self.sequence_length] for i in range(data.shape[0] - self.sequence_length + 1)]
+
         indices = np.random.permutation(len(sequences))
         split_point = int(self.train_gaussian_percentage * len(sequences))
         train_loader = DataLoader(dataset=sequences, batch_size=self.batch_size, drop_last=True,
