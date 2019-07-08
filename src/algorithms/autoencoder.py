@@ -29,6 +29,23 @@ class AutoEncoder(Algorithm, PyTorchUtils):
 
         self.aed = None
         self.mean, self.cov = None, None
+        self.n_features = None
+
+    def save(self, fname: str):
+        torch.save({
+                    'aed_state_dict': self.aed.state_dict(),
+                    'mean': self.mean,
+                    'cov': self.cov,
+                    'n_features': self.n_features,
+                   }, fname)
+
+    def load(self, fname: str):
+        state_dict = torch.load(fname, map_location=self.device)
+        self.n_features = state_dict['n_features']
+        self.mean = state_dict['mean']
+        self.cov = state_dict['cov']
+        self.aed = AutoEncoderModule(self.n_features, self.sequence_length, self.hidden_size, seed=self.seed,gpu=self.gpu)
+        self.aed.load_state_dict(state_dict['aed_state_dict'])
 
     def fit(self, X_list: List[pd.DataFrame]):
         # deal with multiple time series
@@ -46,7 +63,8 @@ class AutoEncoder(Algorithm, PyTorchUtils):
         train_gaussian_loader = DataLoader(dataset=sequences, batch_size=self.batch_size, drop_last=True,
                                            sampler=SubsetRandomSampler(indices[-split_point:]), pin_memory=True)
 
-        self.aed = AutoEncoderModule(X.shape[1], self.sequence_length, self.hidden_size, seed=self.seed, gpu=self.gpu)
+        self.n_features = X_list[0].shape[1]
+        self.aed = AutoEncoderModule(self.n_features, self.sequence_length, self.hidden_size, seed=self.seed, gpu=self.gpu)
         self.to_device(self.aed)  # .double()
         optimizer = torch.optim.Adam(self.aed.parameters(), lr=self.lr)
 
